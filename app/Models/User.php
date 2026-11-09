@@ -2,60 +2,56 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Fortify\TwoFactorAuthenticatable;
-use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens;
-    use HasFactory;
-    use HasProfilePhoto;
-    use Notifiable;
-    use TwoFactorAuthenticatable;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'role',
+        'phone',
+        'profile_photo_path',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isShopOwner(): bool
+    {
+        return $this->role === 'shop_owner';
+    }
+
     /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array<int, string>
+     * A shop owner has one shop (or can manage multiple shops, but typically 1 in standard multi-vendor)
      */
-    protected $appends = [
-        'profile_photo_url',
-    ];
+    public function shop()
+    {
+        return $this->hasOne(Shop::class, 'user_id');
+    }
+
+    /**
+     * Products created by this user in the shared catalog
+     */
+    public function createdProducts()
+    {
+        return $this->hasMany(Product::class, 'created_by_user_id');
+    }
 }
